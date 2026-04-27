@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0, minimum-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Yi 哼唱 · 纵向钢琴卷帘MIDI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #1a1e2b;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 10px;
+      margin: 0;
+      color: #e0e5ec;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      background: #252a36;
+      border-radius: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      padding: 20px 15px 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    h1 {
+      font-weight: 500;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      text-align: center;
+      color: #c4b5fd;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    h1 span {
+      background: #3b3f5c;
+      padding: 4px 12px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 400;
+      color: #f0e9ff;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0f1119;
+      border-radius: 16px;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.6);
+      touch-action: none;
+    }
+    .piano-roll-wrapper {
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #404659;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+    button {
+      background: #313852;
+      border: none;
+      color: #f0f3ff;
+      padding: 14px 18px;
+      border-radius: 40px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      border: 1px solid #4e5470;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      min-height: 48px;
+    }
+    button:active {
+      transform: scale(0.95);
+      background: #2f3550;
+    }
+    button.primary {
+      background: #5b5ea6;
+      border-color: #9da3e0;
+      color: white;
+    }
+    button.danger {
+      background: #583c4a;
+      border-color: #b18597;
+    }
+    button.warning {
+      background: #8b6b4d;
+      border-color: #c9a87c;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e212e;
+      padding: 12px 15px;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pitch-badge {
+      background: #2d3142;
+      padding: 6px 16px;
+      border-radius: 30px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #f3e8ff;
+      min-width: 60px;
+      text-align: center;
+    }
+    .mic-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .led {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #4c5560;
+      box-shadow: 0 0 8px currentColor;
+    }
+    .led.active {
+      background: #77dd77;
+      box-shadow: 0 0 15px #77dd77;
+    }
+    .led.error {
+      background: #ff6b6b;
+      box-shadow: 0 0 15px #ff6b6b;
+    }
+    input[type="range"] {
+      width: 80px;
+      background: #2e3344;
+      height: 6px;
+      border-radius: 5px;
+      accent-color: #a599ff;
+    }
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 0.75rem;
+    }
+    .debug-panel {
+      background: #1e212e;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      color: #a0a8c0;
+      display: none;
+      max-height: 120px;
+      overflow-y: auto;
+      line-height: 1.4;
+    }
+    .debug-panel.show {
+      display: block;
+    }
+    .mobile-hint {
+      background: #2d3142;
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      color: #ffb86c;
+      display: none;
+      text-align: center;
+      border: 1px dashed #5b5ea6;
+    }
+    .mobile-hint.show {
+      display: block;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px 10px 20px;
+        border-radius: 20px;
+      }
+      .controls {
+        gap: 6px;
+      }
+      button {
+        padding: 12px 14px;
+        font-size: 0.8rem;
+        min-height: 44px;
+      }
+      h1 {
+        font-size: 1.3rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>
+    🎤 哼唱Yi · 纵向卷帘
+    <span>MIDI</span>
+  </h1>
+
+  <div id="mobileHint" class="mobile-hint">
+    📱 移动端提示：请使用<b>HTTPS</b>访问，并在系统设置中允许浏览器使用麦克风
+  </div>
+
+  <div class="status-row">
+    <div class="mic-indicator">
+      <span class="led" id="micLed"></span>
+      <span id="micStatus" style="font-size:0.8rem;">准备就绪</span>
+    </div>
+    <div class="pitch-badge" id="currentNote">--</div>
+    <div class="slider-group">
+      <span>灵敏度</span>
+      <input type="range" id="sensitivitySlider" min="0.5" max="2.5" value="1.2" step="0.1">
+    </div>
+  </div>
+
+  <div class="piano-roll-wrapper">
+    <canvas id="pianoCanvas" width="800" height="350"></canvas>
+  </div>
+
+  <div class="controls">
+    <button id="startMicBtn" class="primary">🎙️ 开始</button>
+    <button id="stopMicBtn">⏹️ 停止</button>
+    <button id="clearBtn" class="danger">🗑️ 清除</button>
+    <button id="exportMidiBtn">⬇️ 导出</button>
+    <button id="playMidiBtn">▶️ 试听</button>
+  </div>
+  
+  <div id="debugPanel" class="debug-panel"></div>
+  
+  <div style="font-size:0.75rem; color:#8b92a8; text-align:center;">
+    ✏️ 点击音符删除 | 拖拽移动音高 | 遇到问题请查看下方调试信息
+  </div>
+</div>
+
+<script>
+  (function() {
+    // 检测是否为移动设备
+    const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
+    
+    // 显示移动端提示
+    if (isMobile) {
+      document.getElementById('mobileHint').classList.add('show');
+    }
+
+    // ---------- 音频上下文与MIDI映射 ----------
+    let audioCtx = null;
+    let micStream = null;
+    let analyser = null;
+    let micSource = null;
+    let isMicActive = false;
+    let animationFrameId = null;
+
+    const canvas = document.getElementById('pianoCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const MIN_MIDI = 48;
+    const MAX_MIDI = 84;
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    function midiToNoteName(midi) {
+      const octave = Math.floor(midi / 12) - 1;
+      const name = NOTE_NAMES[midi % 12];
+      return `${name}${octave}`;
+    }
+
+    let notes = [];
+    let activeNote = null;
+    let lastNoteMidi = null;
+    let rollStartTime = 0;
+    const ROLL_WIDTH_SECONDS = 10;
+    let selectedNoteIndex = -1;
+    let dragMode = false;
+    let dragStartY = 0;
+    let originalMidi = 0;
+    let sensitivity = 1.2;
+
+    const sensitivitySlider = document.getElementById('sensitivitySlider');
+    sensitivitySlider.addEventListener('input', (e) => {
+      sensitivity = parseFloat(e.target.value);
+    });
+
+    // 调试信息
+    function addDebug(message) {
+      const panel = document.getElementById('debugPanel');
+      panel.classList.add('show');
+      const time = new Date().toLocaleTimeString();
+      panel.innerHTML += `<div>[${time}] ${message}</div>`;
+      panel.scrollTop = panel.scrollHeight;
+      console.log('Debug:', message);
+    }
+
+    function clearDebug() {
+      document.getElementById('debugPanel').innerHTML = '';
+    }
+
+    function updateMicStatus(status, isError = false) {
+      const led = document.getElementById('micLed');
+      const statusText = document.getElementById('micStatus');
+      
+      led.className = 'led';
+      if (status === 'active') {
+        led.classList.add('active');
+      } else if (isError) {
+        led.classList.add('error');
+      }
+      
+      statusText.textContent = status;
+    }
+
+    // ---------- 移动端权限处理 ----------
+    async function requestMobilePermission() {
+      addDebug('📱 移动端权限请求流程开始...');
+      
+      // 检查是否是安全上下文
+      if (window.location.protocol !== 'https:' && 
+          window.location.hostname !== 'localhost' && 
+          window.location.hostname !== '127.0.0.1') {
+        addDebug('❌ 非安全上下文！移动端必须使用HTTPS或localhost');
+        alert('手机浏览器需要HTTPS连接才能使用麦克风。\n请在地址栏输入https://开头');
+        return false;
+      }
+
+      // 检查API支持
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        addDebug('❌ 浏览器不支持getUserMedia API');
+        
+        // iOS Safari 可能需要使用webkit前缀
+        if (navigator.getUserMedia || navigator.webkitGetUserMedia) {
+          addDebug('🔄 尝试使用旧版API...');
+        } else {
+          alert('您的浏览器不支持麦克风功能。\n请使用Chrome、Safari或Edge浏览器。');
+          return false;
+        }
+      }
+
+      // 移动端特殊处理：先检查权限状态
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const result = await navigator.permissions.query({ name: 'microphone' });
+          addDebug(`📋 当前权限状态: ${result.state}`);
+          
+          if (result.state === 'denied') {
+            addDebug('❌ 权限已被永久拒绝！');
+            showMobilePermissionGuide();
+            return false;
+          }
+          
+          if (result.state === 'granted') {
+            addDebug('✅ 权限已授予');
+          }
+        } else {
+          addDebug('⚠️ 浏览器不支持权限查询API（常见于iOS Safari）');
+        }
+      } catch (permErr) {
+        addDebug(`⚠️ 权限查询失败: ${permErr.message}`);
+      }
+
+      // 实际请求麦克风
+      try {
+        addDebug('🎤 请求麦克风访问...');
+        
+        const constraints = {
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+            sampleRate: 44100,
+            channelCount: 1
+          },
+          video: false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        addDebug('✅ 麦克风访问成功！');
+        
+        // 测试成功后立即停止流，等待用户正式点击开始
+        stream.getTracks().forEach(track => {
+          addDebug(`📡 音频轨道: ${track.label}, 状态: ${track.readyState}`);
+          track.stop();
+        });
+        
+        updateMicStatus('权限正常，可以开始');
+        return true;
+        
+      } catch (err) {
+        addDebug(`❌ 请求失败: ${err.name} - ${err.message}`);
+        
+        if (err.name === 'NotAllowedError') {
+          addDebug('🚫 用户拒绝了权限请求');
+          showMobilePermissionGuide();
+        } else if (err.name === 'NotFoundError') {
+          addDebug('🔍 未找到麦克风设备');
+          alert('未检测到麦克风设备。\n请确认手机有麦克风并已连接。');
+        } else if (err.name === 'NotReadableError') {
+          addDebug('🔒 麦克风被其他应用占用');
+          alert('麦克风正在被其他应用使用。\n请关闭其他应用后重试。');
+        } else {
+          addDebug(`⚠️ 未知错误: ${err.message}`);
+          alert(`获取麦克风失败: ${err.message}`);
+        }
+        
+        return false;
+      }
+    }
+
+    function showMobilePermissionGuide() {
+      let guide = '📱 请按以下步骤开启麦克风权限：\n\n';
+      
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        guide += 'iOS设备：\n';
+        guide += '1. 打开"设置"应用\n';
+        guide += '2. 向下滚动找到"Safari"\n';
+        guide += '3. 找到"麦克风"选项\n';
+        guide += '4. 选择"允许"或"询问"\n';
+        guide += '5. 返回浏览器刷新页面';
+      } else if (/Android/.test(navigator.userAgent)) {
+        guide += 'Android设备：\n';
+        guide += '1. 打开手机"设置"\n';
+        guide += '2. 找到"应用管理"或"应用权限"\n';
+        guide += '3. 找到你的浏览器应用\n';
+        guide += '4. 点击"权限管理"\n';
+        guide += '5. 开启"麦克风"权限\n';
+        guide += '6. 返回浏览器刷新页面';
+      }
+      
+      guide += '\n\n💡 提示：如果是通过APP内嵌浏览器打开，请在系统浏览器中打开此页面。';
+      
+      alert(guide);
+      addDebug('📋 已显示权限设置指南');
+    }
+
+    // ---------- 工具函数 ----------
+    function frequencyToMidi(freq) {
+      if (freq <= 0) return -1;
+      return 12 * Math.log2(freq / 440) + 69;
+    }
+
+    function getPitchFromAnalyser() {
+      if (!analyser) return -1;
+      const bufferLength = analyser.fftSize;
+      const dataArray = new Float32Array(bufferLength);
+      analyser.getFloatTimeDomainData(dataArray);
+
+      let bestOffset = -1;
+      let bestCorrelation = 0;
+      const minSamples = Math.floor(44100 / 1000);
+      const maxSamples = Math.floor(44100 / 80);
+
+      for (let offset = minSamples; offset < Math.min(maxSamples, bufferLength/2); offset++) {
+        let correlation = 0;
+        for (let i = 0; i < bufferLength - offset; i++) {
+          correlation += dataArray[i] * dataArray[i + offset];
+        }
+        if (correlation > bestCorrelation) {
+          bestCorrelation = correlation;
+          bestOffset = offset;
+        }
+      }
+
+      if (bestOffset <= 0 || bestCorrelation < 0.01) return -1;
+
+      const sampleRate = audioCtx.sampleRate;
+      const frequency = sampleRate / bestOffset;
+
+      let sumSquares = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sumSquares += dataArray[i] * dataArray[i];
+      }
+      const rms = Math.sqrt(sumSquares / bufferLength);
+      const threshold = 0.008 * sensitivity;
+      if (rms < threshold) return -1;
+
+      if (frequency < 70 || frequency > 1200) return -1;
+      return frequency;
+    }
+
+    // ---------- 音符管理 ----------
+    function startNote(midi, currentTime) {
+      if (activeNote && activeNote.midi === midi) return;
+      if (activeNote) endActiveNote(currentTime);
+      activeNote = { midi, startTime: currentTime, duration: 0 };
+      lastNoteMidi = midi;
+      drawPianoRoll();
+    }
+
+    function endActiveNote(currentTime) {
+      if (!activeNote) return;
+      if (currentTime > activeNote.startTime + 0.02) {
+        activeNote.duration = currentTime - activeNote.startTime;
+        notes.push({ ...activeNote });
+      }
+      activeNote = null;
+      lastNoteMidi = null;
+      drawPianoRoll();
+    }
+
+    function updateActiveNoteDuration(currentTime) {
+      if (activeNote) {
+        activeNote.duration = Math.max(0, currentTime - activeNote.startTime);
+      }
+    }
+
+    function clearAllNotes() {
+      notes = [];
+      activeNote = null;
+      lastNoteMidi = null;
+      selectedNoteIndex = -1;
+      drawPianoRoll();
+    }
+
+    // ---------- 钢琴卷帘绘制 ----------
+    function drawPianoRoll() {
+      if (!canvas) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const totalMidiRange = MAX_MIDI - MIN_MIDI + 1;
+      const rowHeight = h / totalMidiRange;
+
+      for (let i = 0; i < totalMidiRange; i++) {
+        const midi = MAX_MIDI - i;
+        const y = i * rowHeight;
+        const isBlackKey = [1,3,6,8,10].includes(midi % 12);
+        ctx.fillStyle = isBlackKey ? '#202433' : '#2a2f3f';
+        ctx.fillRect(0, y, w, rowHeight);
+        ctx.strokeStyle = '#3d4357';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const viewEndTime = rollStartTime + ROLL_WIDTH_SECONDS;
+      const timeToX = (time) => ((time - rollStartTime) / ROLL_WIDTH_SECONDS) * w;
+
+      notes.forEach((note, index) => {
+        if (note.startTime + note.duration < rollStartTime || note.startTime > viewEndTime) return;
+        const x1 = Math.max(0, timeToX(note.startTime));
+        const x2 = Math.min(w, timeToX(note.startTime + note.duration));
+        const midiIndex = MAX_MIDI - note.midi;
+        const y = midiIndex * rowHeight;
+        
+        ctx.fillStyle = index === selectedNoteIndex ? '#ffb86c' : '#7b9cce';
+        ctx.fillRect(x1, y, x2 - x1, rowHeight-1);
+        ctx.strokeStyle = '#ffffff30';
+        ctx.strokeRect(x1, y, x2 - x1, rowHeight-1);
+        if (x2 - x1 > 20) {
+          ctx.fillStyle = '#ffffffdd';
+          ctx.font = `${Math.max(8, rowHeight * 0.7)}px "Segoe UI"`;
+          ctx.fillText(midiToNoteName(note.midi), x1+3, y + rowHeight * 0.7);
+        }
+      });
+
+      if (activeNote && activeNote.startTime >= rollStartTime - 0.5) {
+        const x1 = timeToX(activeNote.startTime);
+        const currentX = Math.min(w, timeToX(activeNote.startTime + activeNote.duration));
+        const midiIndex = MAX_MIDI - activeNote.midi;
+        const y = midiIndex * rowHeight;
+        ctx.fillStyle = '#f4a261';
+        ctx.fillRect(x1, y, currentX - x1, rowHeight-1);
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.max(8, rowHeight * 0.7)}px "Segoe UI"`;
+        ctx.fillText(midiToNoteName(activeNote.midi), x1+3, y + rowHeight * 0.7);
+      }
+
+      ctx.fillStyle = '#a0a8c0';
+      ctx.font = '9px monospace';
+      for (let sec = Math.ceil(rollStartTime); sec <= viewEndTime; sec++) {
+        const x = timeToX(sec);
+        ctx.fillText(sec.toFixed(0)+'s', x+2, h-4);
+      }
+    }
+
+    function autoScrollRoll() {
+      if (!audioCtx || !isMicActive) return;
+      const now = audioCtx.currentTime;
+      if (now > rollStartTime + ROLL_WIDTH_SECONDS * 0.85) {
+        rollStartTime = now - ROLL_WIDTH_SECONDS * 0.7;
+      }
+      if (rollStartTime < 0) rollStartTime = 0;
+    }
+
+    // ---------- 音频循环 ----------
+    function pitchDetectionLoop() {
+      if (!isMicActive) return;
+      const freq = getPitchFromAnalyser();
+      const now = audioCtx.currentTime;
+
+      if (freq > 0) {
+        const midi = Math.round(frequencyToMidi(freq));
+        if (midi >= MIN_MIDI && midi <= MAX_MIDI) {
+          document.getElementById('currentNote').innerText = midiToNoteName(midi);
+          if (activeNote && activeNote.midi !== midi) {
+            endActiveNote(now);
+            startNote(midi, now);
+          } else if (!activeNote) {
+            startNote(midi, now);
+          } else {
+            updateActiveNoteDuration(now);
+          }
+        } else {
+          document.getElementById('currentNote').innerText = '--';
+          if (activeNote) endActiveNote(now);
+        }
+      } else {
+        document.getElementById('currentNote').innerText = '--';
+        if (activeNote) endActiveNote(now);
+      }
+
+      autoScrollRoll();
+      drawPianoRoll();
+      animationFrameId = requestAnimationFrame(pitchDetectionLoop);
+    }
+
+    // ---------- 麦克风控制 ----------
+    async function startMicrophone() {
+      if (isMicActive) return;
+      
+      clearDebug();
+      addDebug('🚀 启动麦克风...');
+      
+      // 移动端先测试权限
+      if (isMobile) {
+        addDebug('📱 检测到移动设备，先验证权限...');
+        const canAccess = await requestMobilePermission();
+        if (!canAccess) {
+          addDebug('❌ 权限验证失败');
+          updateMicStatus('权限验证失败', true);
+          return;
+        }
+      }
+      
+      try {
+        addDebug('🎤 获取麦克风流...');
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false
+          }, 
+          video: false 
+        });
+
+        // 检查AudioContext状态（移动端可能需要用户手势才能创建）
+        if (!audioCtx || audioCtx.state === 'closed') {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // 如果AudioContext是suspended状态（iOS常见），需要resume
+        if (audioCtx.state === 'suspended') {
+          addDebug('🔄 AudioContext suspended，尝试恢复...');
+          await audioCtx.resume();
+          addDebug(`✅ AudioContext状态: ${audioCtx.state}`);
+        }
+        
+        micStream = stream;
+        micSource = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        micSource.connect(analyser);
+        
+        isMicActive = true;
+        updateMicStatus('监听中 (哼唱yi)');
+        document.getElementById('micLed').classList.add('active');
+        rollStartTime = audioCtx.currentTime;
+        
+        addDebug('✅ 麦克风启动成功！');
+        pitchDetectionLoop();
+        
+      } catch (err) {
+        addDebug(`❌ 启动失败: ${err.name} - ${err.message}`);
+        updateMicStatus('启动失败', true);
+        
+        if (err.name === 'NotAllowedError') {
+          if (isMobile) {
+            showMobilePermissionGuide();
+          } else {
+            alert('麦克风权限被拒绝。\n请在浏览器设置中允许麦克风访问。');
+          }
+        } else {
+          alert(`启动失败: ${err.message}`);
+        }
+      }
+    }
+
+    function stopMicrophone() {
+      if (!isMicActive) return;
+      if (activeNote && audioCtx) {
+        endActiveNote(audioCtx.currentTime);
+      }
+      if (micStream) {
+        micStream.getTracks().forEach(track => track.stop());
+        micStream = null;
+      }
+      if (micSource) {
+        micSource.disconnect();
+        micSource = null;
+      }
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      isMicActive = false;
+      updateMicStatus('已停止');
+      document.getElementById('currentNote').innerText = '--';
+      addDebug('⏹️ 麦克风已停止');
+      drawPianoRoll();
+    }
+
+    // ---------- 编辑交互 ----------
+    function getNoteAtPosition(px, py) {
+      const w = canvas.width;
+      const h = canvas.height;
+      const totalRange = MAX_MIDI - MIN_MIDI + 1;
+      const rowHeight = h / totalRange;
+      const clickTime = rollStartTime + (px / w) * ROLL_WIDTH_SECONDS;
+      const midiFromY = MAX_MIDI - Math.floor(py / rowHeight);
+
+      for (let i = notes.length-1; i >= 0; i--) {
+        const note = notes[i];
+        if (clickTime >= note.startTime && clickTime <= note.startTime + note.duration) {
+          if (Math.abs(note.midi - midiFromY) <= 0.5) {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (isMobile) return; // 移动端使用touch事件
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const px = (e.clientX - rect.left) * scaleX;
+      const py = (e.clientY - rect.top) * scaleY;
+      handleNoteSelection(px, py);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!dragMode || selectedNoteIndex < 0 || !notes[selectedNoteIndex] || isMobile) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleY = canvas.height / rect.height;
+      const py = (e.clientY - rect.top) * scaleY;
+      handleNoteDrag(py);
+    });
+
+    window.addEventListener('mouseup', () => {
+      dragMode = false;
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const px = (touch.clientX - rect.left) * scaleX;
+      const py = (touch.clientY - rect.top) * scaleY;
+      handleNoteSelection(px, py);
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!dragMode || selectedNoteIndex < 0) return;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const scaleY = canvas.height / rect.height;
+      const py = (touch.clientY - rect.top) * scaleY;
+      handleNoteDrag(py);
+    });
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      dragMode = false;
+    });
+
+    function handleNoteSelection(px, py) {
+      const index = getNoteAtPosition(px, py);
+      if (index >= 0) {
+        selectedNoteIndex = index;
+        dragMode = true;
+        dragStartY = py;
+        originalMidi = notes[index].midi;
+        drawPianoRoll();
+      } else {
+        selectedNoteIndex = -1;
+        drawPianoRoll();
+      }
+    }
+
+    function handleNoteDrag(py) {
+      const deltaY = py - dragStartY;
+      const totalRange = MAX_MIDI - MIN_MIDI + 1;
+      const rowHeight = canvas.height / totalRange;
+      const midiDelta = Math.round(-deltaY / rowHeight);
+      let newMidi = originalMidi + midiDelta;
+      newMidi = Math.min(MAX_MIDI, Math.max(MIN_MIDI, newMidi));
+      notes[selectedNoteIndex].midi = newMidi;
+      drawPianoRoll();
+    }
+
+    // ---------- MIDI 导出 ----------
+    function exportMidi() {
+      if (notes.length === 0 && !activeNote) {
+        alert('没有音符可导出，请先哼唱yi~');
+        return;
+      }
+      let allNotes = [...notes];
+      if (activeNote && audioCtx) {
+        const now = audioCtx.currentTime;
+        if (now > activeNote.startTime) {
+          allNotes.push({
+            midi: activeNote.midi,
+            startTime: activeNote.startTime,
+            duration: now - activeNote.startTime,
+          });
+        }
+      }
+      if (allNotes.length === 0) return;
+
+      const ticksPerBeat = 480;
+      const tempo = 500000;
+      const microsecondsPerBeat = tempo;
+      const secondsPerTick = (microsecondsPerBeat / 1000000) / ticksPerBeat;
+      const toTicks = (seconds) => Math.round(seconds / secondsPerTick);
+
+      allNotes.sort((a,b) => a.startTime - b.startTime);
+
+      let trackEvents = [];
+      trackEvents.push({ delta: 0, type: 'meta', subtype: 'setTempo', data: [0x07, 0xA1, 0x20] });
+
+      const noteOnEvents = [];
+      const noteOffEvents = [];
+
+      allNotes.forEach(note => {
+        const startTick = toTicks(note.startTime);
+        const durationTicks = Math.max(1, toTicks(note.duration));
+        const endTick = startTick + durationTicks;
+        noteOnEvents.push({ tick: startTick, midi: note.midi, velocity: 100 });
+        noteOffEvents.push({ tick: endTick, midi: note.midi });
+      });
+
+      const allTimedEvents = [
+        ...noteOnEvents.map(e => ({ tick: e.tick, type: 'noteOn', midi: e.midi, velocity: e.velocity })),
+        ...noteOffEvents.map(e => ({ tick: e.tick, type: 'noteOff', midi: e.midi, velocity: 0 }))
+      ].sort((a,b) => a.tick - b.tick);
+
+      let currentTick = 0;
+      allTimedEvents.forEach(ev => {
+        const delta = ev.tick - currentTick;
+        if (ev.type === 'noteOn') {
+          trackEvents.push({ delta, type: 'noteOn', channel: 0, midi: ev.midi, velocity: ev.velocity });
+        } else {
+          trackEvents.push({ delta, type: 'noteOff', channel: 0, midi: ev.midi, velocity: 0 });
+        }
+        currentTick = ev.tick;
+      });
+
+      trackEvents.push({ delta: 0, type: 'meta', subtype: 'endOfTrack' });
+
+      const writeVariableLength = (value) => {
+        const bytes = [];
+        let v = value;
+        do {
+          let b = v & 0x7F;
+          v >>= 7;
+          if (v > 0) b |= 0x80;
+          bytes.push(b);
+        } while (v > 0);
+        return bytes;
+      };
+
+      const headerChunk = [0x4D, 0x54, 0x68, 0x64];
+      const headerData = [0,0,0,6, 0,0, 0,1, (ticksPerBeat >> 8) & 0xFF, ticksPerBeat & 0xFF];
+      const trackChunk = [0x4D, 0x54, 0x72, 0x6B];
+
+      let trackBytes = [];
+      trackEvents.forEach(ev => {
+        const deltaBytes = writeVariableLength(ev.delta);
+        trackBytes.push(...deltaBytes);
+        if (ev.type === 'meta') {
+          trackBytes.push(0xFF);
+          if (ev.subtype === 'setTempo') {
+            trackBytes.push(0x51, 0x03, ...ev.data);
+          } else if (ev.subtype === 'endOfTrack') {
+            trackBytes.push(0x2F, 0x00);
+          }
+        } else if (ev.type === 'noteOn') {
+          trackBytes.push(0x90 | ev.channel, ev.midi, ev.velocity);
+        } else if (ev.type === 'noteOff') {
+          trackBytes.push(0x80 | ev.channel, ev.midi, ev.velocity);
+        }
+      });
+
+      const trackLength = trackBytes.length;
+      const trackLengthBytes = [(trackLength >> 24) & 0xFF, (trackLength >> 16) & 0xFF, (trackLength >> 8) & 0xFF, trackLength & 0xFF];
+
+      const midiArray = new Uint8Array([...headerChunk, ...headerData, ...trackChunk, ...trackLengthBytes, ...trackBytes]);
+      const blob = new Blob([midiArray], { type: 'audio/midi' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'yi_singing.mid';
+      a.click();
+      URL.revokeObjectURL(url);
+      addDebug('💾 MIDI文件已导出');
+    }
+
+    function playMidiPreview() {
+      if (!audioCtx || audioCtx.state === 'closed') {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      
+      const now = audioCtx.currentTime;
+      let allNotes = [...notes];
+      if (activeNote && audioCtx) {
+        const t = audioCtx.currentTime;
+        if (t > activeNote.startTime) allNotes.push({...activeNote, duration: t - activeNote.startTime});
+      }
+      
+      if (allNotes.length === 0) {
+        alert('没有可播放的音符');
+        return;
+      }
+      
+      allNotes.forEach(note => {
+        const start = now + (note.startTime - allNotes[0].startTime) * 0.8;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = 440 * Math.pow(2, (note.midi-69)/12);
+        gain.gain.setValueAtTime(0.3, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + note.duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + note.duration + 0.05);
+      });
+      
+      addDebug('▶️ 开始播放预览');
+    }
+
+    // ---------- 按钮绑定 ----------
+    document.getElementById('startMicBtn').addEventListener('click', startMicrophone);
+    document.getElementById('stopMicBtn').addEventListener('click', stopMicrophone);
+    document.getElementById('clearBtn').addEventListener('click', clearAllNotes);
+    document.getElementById('exportMidiBtn').addEventListener('click', exportMidi);
+    document.getElementById('playMidiBtn').addEventListener('click', playMidiPreview);
+
+    // 初始绘制
+    drawPianoRoll();
+
+    // 页面加载检查
+    window.addEventListener('load', () => {
+      if (window.location.protocol !== 'https:' && 
+          window.location.hostname !== 'localhost' && 
+          window.location.hostname !== '127.0.0.1') {
+        addDebug('⚠️ 非安全上下文，移动端无法使用麦克风');
+        if (isMobile) {
+          updateMicStatus('需要HTTPS连接', true);
+        }
+      } else {
+        addDebug('✅ 环境检查通过');
+      }
+    });
+
+    // 页面卸载清理
+    window.addEventListener('beforeunload', () => {
+      stopMicrophone();
+      if (audioCtx) audioCtx.close();
+    });
+  })();
+</script>
+</body>
+</html>
